@@ -9,4 +9,4 @@ I don't really plan on maintaining this, just thought it might be useful to othe
 
 ## Example output
 
-![]("main/example.png")
+![](example.png)
