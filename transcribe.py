@@ -98,11 +98,11 @@ def build_docx(title, word_time_map, speaker_segments, speaker_names):
 
 
 if __name__ == "__main__":
-    transcript = load("./t.json")
+    transcript = load("./some_path.json")
     words_by_time = get_words_by_start_time(transcript)
 
-    title = "Transcript of Interview With George Winston"
-    name_map = {"spk_0": "Gwynn Lanning", "spk_1": "George Winston"}
+    title = "Document Title"
+    name_map = {"spk_0": "Speaker One", "spk_1": "Speaker Two"}
 
     document = build_docx(title, words_by_time, transcript, name_map)
     document.save(f"{title}.docx")
