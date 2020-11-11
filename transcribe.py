@@ -23,20 +23,17 @@ def get_words_by_start_time(transcript):
     """
     merged_words = {}
 
-    for i, item in enumerate(transcript["results"]["items"]):
+    items = transcript["results"]["items"]
+
+    for i, item in enumerate(items):
         # Only save pronunciations... may not be necessary, or may need other types
         if item["type"] == "pronunciation":
             word = item["alternatives"][0]["content"]
             confidence = item["alternatives"][0]["confidence"]
 
             # If the next item in the transcript is a punctuation, merge with the current word
-            if (
-                i < len(transcript["results"]["items"]) - 1
-                and transcript["results"]["items"][i + 1]["type"] == "punctuation"
-            ):
-                word += transcript["results"]["items"][i + 1]["alternatives"][0][
-                    "content"
-                ]
+            if i < len(items) - 1 and items[i + 1]["type"] == "punctuation":
+                word += items[i + 1]["alternatives"][0]["content"]
 
             # Add the word to the map at start time
             merged_words[item["start_time"]] = {
@@ -72,20 +69,19 @@ def build_docx(title, word_time_map, speaker_segments, speaker_names):
 
         # Speaker has changed, add a new sub-heading for with their name and time
         if current_speaker != name:
+            speaker_start = speaker_segment["start_time"]
             # Humanise time
-            start = time.strftime(
-                "%H:%M:%S", time.gmtime(float(speaker_segment["start_time"]))
-            )
+            start = time.strftime("%Hh%Mm%Ss", time.gmtime(float(speaker_start)))
 
             # Begin a new paragraph for the speaker
-            doc.add_heading(f"{name} @ {start}s", 2)
+            doc.add_heading(f"{name} @ {start}", 2)
             current_speaker = name
             current_paragraph = doc.add_paragraph()
 
             # Capitalise first word for new speaker
-            word_time_map[speaker_segment["start_time"]]["content"] = word_time_map[
-                speaker_segment["start_time"]
-            ]["content"].capitalize()
+            word_time_map[speaker_start]["content"] = word_time_map[speaker_start][
+                "content"
+            ].capitalize()
 
         # Build paragraph
         for item in speaker_segment["items"]:
@@ -102,11 +98,11 @@ def build_docx(title, word_time_map, speaker_segments, speaker_names):
 
 
 if __name__ == "__main__":
-    transcript = load("./some_path.json")
+    transcript = load("./t.json")
     words_by_time = get_words_by_start_time(transcript)
 
-    title = "Document Title"
-    name_map = {"spk_0": "Speaker One", "spk_1": "Speaker Two"}
+    title = "Transcript of Interview With George Winston"
+    name_map = {"spk_0": "Gwynn Lanning", "spk_1": "George Winston"}
 
     document = build_docx(title, words_by_time, transcript, name_map)
     document.save(f"{title}.docx")
