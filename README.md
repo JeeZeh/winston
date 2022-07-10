@@ -1,10 +1,12 @@
-# Amazon Transcribe - JSON to DOCX Parser for multi-speaker transcriptions
+# Winston 
 
-This is just a small script that I wrote to help convert a multi-speaker Amazon Transcribe JSON to Word Document.
+> An Amazon Transcribe (JSON) to Word (docx) converter for multi-speaker transcriptions
 
-It gives you a nice output organised by speaker and time, followed by what they said. It also colourises the words based on their confidence.
+A small script to help convert a multi-speaker Amazon Transcribe JSON to Word Document (docx).
 
-I don't really plan on maintaining this, just thought it might be useful to others :)
+Given a JSON transcript, a Word document with clean output is produced. Output is organised by speaker and time, followed by what was said by each speaker. Phrases are colored based on the transcription confidence from Amazon Transcribe.
+
+I don't really plan on maintaining this, just thought it might be useful to others. Feel free to open a PR, though.
 
 
 ## Example output
