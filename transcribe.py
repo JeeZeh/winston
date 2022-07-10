@@ -1,4 +1,6 @@
+from dataclasses import dataclass
 import json, time
+from typing import Dict, List
 from docx import Document, shared
 
 RED = shared.RGBColor(0x7D, 0x08, 0x00)
@@ -6,61 +8,64 @@ ORANGE = shared.RGBColor(0x66, 0x58, 0x00)
 BLACK = shared.RGBColor(0x00, 0x00, 0x00)
 
 
-def load(filepath):
+def load(filepath) -> dict:
     with open(filepath) as infile:
         return json.load(infile)
 
 
-def get_words_by_start_time(transcript):
-    """Merges punctuation with standard words since they don't have a start time, 
-    returns them in a handy map of start_time to word and confidence
+@dataclass
+class Word:
+    content: str
+    confidence: float
+
+
+def get_words_by_start_time(transcript: Dict) -> Dict[str, Word]:
+    """Merges punctuation with standard words since they don't have a start time,
+    returns them in a handy map of start_time to word and confidence.
 
     Args:
-        transcript: Amazon Transcript JSON
+        transcript: Amazon Transcript JSON dictionary
 
     Returns:
-        (dict): a map of start_time to word and confidence
+        (Dict): a map of start_time to word and confidence
     """
-    merged_words = {}
+    merged_words: Dict[str, Word] = {}
 
-    items = transcript["results"]["items"]
+    items: List[Dict] = transcript["results"]["items"]
 
     for i, item in enumerate(items):
         # Only save pronunciations... may not be necessary, or may need other types
         if item["type"] == "pronunciation":
-            word = item["alternatives"][0]["content"]
-            confidence = item["alternatives"][0]["confidence"]
+            word: str = item["alternatives"][0]["content"]
+            confidence: str = item["alternatives"][0]["confidence"]
 
             # If the next item in the transcript is a punctuation, merge with the current word
             if i < len(items) - 1 and items[i + 1]["type"] == "punctuation":
                 word += items[i + 1]["alternatives"][0]["content"]
 
             # Add the word to the map at start time
-            merged_words[item["start_time"]] = {
-                "content": word,
-                "confidence": confidence,
-            }
+            merged_words[item["start_time"]] = Word(word, float(confidence))
 
     return merged_words
 
 
-def build_docx(title, word_time_map, speaker_segments, speaker_names):
+def build_docx(title, word_time_map: Dict[str, Word], speaker_names: Dict[str, str]):
     """Builds a Word document version of the transcript, with words color-coded
-    according to confidence 
+    according to confidence
 
     Args:
-        word_time_map (dict): a map of start_time to word and confidence
-        transcript (dict): Amazon Transcribe transcript
-        speaker_names (dict): a mapping of speaker_label (e.g. spk_0) to name 
+        title (str): the title of the docx to be created
+        word_time_map (Dict[str, Word]): a map of start_time to word and confidence
+        speaker_names (dict): a map of speaker_label (e.g. spk_0) to name
             which will appear in transcript
-        
+
     Returns:
         Document: a complete Word document
     """
     doc = Document()
     doc.add_heading(title, 0)
 
-    current_speaker = ""
+    current_speaker: str = ""
     current_paragraph = None
 
     # Start running through each speaker's segment
@@ -79,30 +84,35 @@ def build_docx(title, word_time_map, speaker_segments, speaker_names):
             current_paragraph = doc.add_paragraph()
 
             # Capitalise first word for new speaker
-            word_time_map[speaker_start]["content"] = word_time_map[speaker_start][
-                "content"
-            ].capitalize()
+            word_time_map[speaker_start].content = word_time_map[speaker_start].content.capitalize()
 
         # Build paragraph
         for item in speaker_segment["items"]:
             start = item["start_time"]
-            word = word_time_map[start]["content"] + " "
+            word = word_time_map[start].content + " "
 
             # Add word, coloured by confidence level
-            confidence = float(word_time_map[start]["confidence"])
             current_paragraph.add_run(word).font.color.rgb = (
-                RED if confidence < 0.5 else ORANGE if confidence < 0.85 else BLACK
+                RED
+                if word_time_map[start].confidence < 0.5
+                else ORANGE
+                if word_time_map[start].confidence < 0.85
+                else BLACK
             )
 
     return doc
 
 
 if __name__ == "__main__":
-    transcript = load("./some_path.json")
-    words_by_time = get_words_by_start_time(transcript)
+    # Set Amazon Transcribe transcript path
+    transcript = load("./Winston Transcribe.json")
 
+    # Set desired output title
     title = "Document Title"
-    name_map = {"spk_0": "Speaker One", "spk_1": "Speaker Two"}
 
-    document = build_docx(title, words_by_time, transcript, name_map)
+    # Set the mapping of speakers in the transcription
+    name_map = {"spk_0": "Speaker One", "spk_1": "Speaker Two"}  # ... }
+
+    words_by_time = get_words_by_start_time(transcript)
+    document = build_docx(title, words_by_time, name_map)
     document.save(f"{title}.docx")
