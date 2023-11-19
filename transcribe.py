@@ -9,8 +9,9 @@ BLACK = shared.RGBColor(0x00, 0x00, 0x00)
 
 
 def load(filepath) -> dict:
-    with open(filepath) as infile:
+    with open(filepath, encoding='utf-8') as infile:
         return json.load(infile)
+
 
 
 @dataclass
@@ -50,62 +51,43 @@ def get_words_by_start_time(transcript: Dict) -> Dict[str, Word]:
 
 
 def build_docx(title, word_time_map: Dict[str, Word], speaker_names: Dict[str, str]):
-    """Builds a Word document version of the transcript, with words color-coded
-    according to confidence
-
-    Args:
-        title (str): the title of the docx to be created
-        word_time_map (Dict[str, Word]): a map of start_time to word and confidence
-        speaker_names (dict): a map of speaker_label (e.g. spk_0) to name
-            which will appear in transcript
-
-    Returns:
-        Document: a complete Word document
-    """
     doc = Document()
     doc.add_heading(title, 0)
 
     current_speaker: str = ""
     current_paragraph = None
 
-    # Start running through each speaker's segment
     for speaker_segment in transcript["results"]["speaker_labels"]["segments"]:
         name = speaker_names[speaker_segment["speaker_label"]]
 
-        # Speaker has changed, add a new sub-heading for with their name and time
         if current_speaker != name:
             speaker_start = speaker_segment["start_time"]
-            # Humanise time
             start = time.strftime("%Hh%Mm%Ss", time.gmtime(float(speaker_start)))
 
-            # Begin a new paragraph for the speaker
             doc.add_heading(f"{name} @ {start}", 2)
             current_speaker = name
             current_paragraph = doc.add_paragraph()
 
-            # Capitalise first word for new speaker
-            word_time_map[speaker_start].content = word_time_map[speaker_start].content.capitalize()
+            if speaker_start in word_time_map:
+                word_time_map[speaker_start].content = word_time_map[speaker_start].content.capitalize()
 
-        # Build paragraph
         for item in speaker_segment["items"]:
             start = item["start_time"]
-            word = word_time_map[start].content + " "
-
-            # Add word, coloured by confidence level
-            current_paragraph.add_run(word).font.color.rgb = (
-                RED
-                if word_time_map[start].confidence < 0.5
-                else ORANGE
-                if word_time_map[start].confidence < 0.85
-                else BLACK
-            )
+            if start in word_time_map:
+                word = word_time_map[start].content + " "
+                current_paragraph.add_run(word).font.color.rgb = (
+                    RED if word_time_map[start].confidence < 0.5
+                    else ORANGE if word_time_map[start].confidence < 0.85
+                    else BLACK
+                )
 
     return doc
 
 
+
 if __name__ == "__main__":
     # Set Amazon Transcribe transcript path
-    transcript = load("./Winston Transcribe.json")
+    transcript = load("./asrOutput.json")
 
     # Set desired output title
     title = "Document Title"
