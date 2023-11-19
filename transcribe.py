@@ -9,8 +9,9 @@ BLACK = shared.RGBColor(0x00, 0x00, 0x00)
 
 
 def load(filepath) -> dict:
-    with open(filepath) as infile:
+    with open(filepath, encoding='utf-8') as infile:
         return json.load(infile)
+
 
 
 @dataclass
